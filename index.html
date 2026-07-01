@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Cashlog</title>
+<style>
+  :root{
+    --g1:#19c267;
+    --g2:#00a84a;
+    --g3:#00592e;
+    --bg:#f2f5f3;
+    --card:#ffffff;
+    --card-border:rgba(0,0,0,0.06);
+    --text:#12241c;
+    --text-dim:#6b7c74;
+    --danger:#e5484d;
+    --shadow:0 8px 24px rgba(0,89,46,0.08);
+    --radius:18px;
+  }
+  [data-theme="dark"]{
+    --bg:#0e1712;
+    --card:#16221b;
+    --card-border:rgba(255,255,255,0.06);
+    --text:#eef7f1;
+    --text-dim:#8ba397;
+    --shadow:0 8px 24px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    min-height:100dvh;
+    transition:background .25s ease,color .25s ease;
+  }
+  .app{
+    max-width:460px;
+    width:100%;
+    margin:0 auto;
+    min-height:100vh;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+  button{font-family:inherit;}
+  input{font-family:inherit;}
+
+  /* ---------- PIN SCREEN ---------- */
+  .pin-screen{
+    position:fixed;
+    inset:0;
+    z-index:500;
+    display:flex;
+    flex-direction:column;
+    max-width:460px;
+    margin:0 auto;
+    background:var(--bg);
+  }
+  .pin-hero{
+    background:linear-gradient(160deg,var(--g1) 0%,var(--g2) 55%,var(--g3) 100%);
+    padding:48px 28px 36px;
+    color:#fff;
+    text-align:center;
+    border-radius:0 0 32px 32px;
+    box-shadow:0 12px 30px rgba(0,89,46,0.25);
+  }
+  .pin-logo{
+    width:64px;height:64px;
+    margin:0 auto 14px;
+    background:rgba(255,255,255,0.18);
+    border-radius:18px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:28px;
+    backdrop-filter:blur(6px);
+  }
+  .pin-hero h1{margin:0 0 4px;font-size:22px;letter-spacing:.3px;}
+  .pin-hero p{margin:0;opacity:.85;font-size:13px;}
+  .pin-card{
+    background:var(--card);
+    margin:-24px 18px 0;
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:24px 20px 28px;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .pin-card .label{font-size:13px;color:var(--text-dim);margin-bottom:14px;text-align:center;}
+  .pin-dots{display:flex;gap:14px;margin-bottom:26px;}
+  .pin-dot{
+    width:16px;height:16px;border-radius:50%;
+    border:2px solid var(--g2);
+    transition:all .15s ease;
+  }
+  .pin-dot.filled{background:var(--g2);}
+  .pin-dot.error{border-color:var(--danger);background:var(--danger);}
+  .pin-error-msg{color:var(--danger);font-size:13px;height:16px;margin-bottom:8px;}
+  .keypad{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+    width:100%;
+    max-width:280px;
+  }
+  .key{
+    aspect-ratio:1;
+    border:none;
+    border-radius:50%;
+    background:var(--bg);
+    color:var(--text);
+    font-size:22px;
+    font-weight:600;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .key:active{background:var(--g1);color:#fff;}
+  .key.ghost{background:transparent;box-shadow:none;color:var(--text-dim);font-size:14px;}
+  .pin-sub{margin-top:16px;font-size:12px;color:var(--text-dim);text-align:center;}
+  .pin-sub a{color:var(--g2);text-decoration:none;font-weight:600;}
+
+  /* ---------- HEADER ---------- */
+  header.topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 18px 12px;
+    position:sticky;
+    top:0;
+    z-index:100;
+    background:var(--bg);
+    box-shadow:0 4px 12px rgba(0,0,0,0.04);
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand .mark{
+    width:40px;height:40px;border-radius:12px;
+    background:linear-gradient(160deg,var(--g1),var(--g3));
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:700;font-size:16px;
+    box-shadow:0 4px 12px rgba(0,89,46,0.25);
+  }
+  .brand .name{font-weight:700;font-size:16px;line-height:1.1;}
+  .brand .tagline{font-size:10.5px;color:var(--text-dim);}
+  .top-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+  .clockbox{font-size:11px;color:var(--text-dim);text-align:right;line-height:1.3;}
+  .clockbox b{color:var(--text);font-size:12px;display:block;}
+  .btn-exit{
+    border:none;background:var(--card);color:var(--text);
+    font-size:11px;font-weight:600;
+    padding:6px 12px;border-radius:20px;
+    display:flex;align-items:center;gap:5px;
+    box-shadow:var(--shadow);
+    cursor:pointer;
+  }
+
+  /* ---------- MAIN ---------- */
+  main{flex:1;padding:4px 18px 100px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .form-card{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:18px;
+    box-shadow:var(--shadow);
+    margin-bottom:16px;
+    border:1px solid var(--card-border);
+  }
+  .form-card label{font-size:12px;color:var(--text-dim);font-weight:600;}
+  .input-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+  .input-row input{
+    flex:1 1 140px;
+    min-width:0;
+    width:100%;
+    padding:14px 12px;
+    font-size:16px;
+    border-radius:12px;
+    border:1.5px solid var(--card-border);
+    background:var(--bg);
+    color:var(--text);
+  }
+  .input-row input:focus{outline:none;border-color:var(--g1);}
+  .btn-add{
+    flex:0 0 auto;
+    background:linear-gradient(135deg,var(--g1),var(--g2));
+    color:#fff;border:none;font-weight:700;font-size:15px;
+    border-radius:12px;padding:0 18px;cursor:pointer;
+    white-space:nowrap;
+    min-height:48px;
+  }
+  .btn-add:active{transform:scale(.97);}
+
+  .stat-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:16px;}
+  .stat-card{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:16px;
+    box-shadow:var(--shadow);
+    border:1px solid var(--card-border);
+  }
+  .stat-card.wide{grid-column:1/3;}
+  .stat-card p.lbl{margin:0 0 6px;font-size:12px;color:var(--text-dim);font-weight:600;}
+  .stat-card .val{font-size:22px;font-weight:800;color:var(--g3);}
+  [data-theme="dark"] .stat-card .val{color:var(--g1);}
+  .stat-card .val small{font-size:13px;font-weight:600;}
+  .stat-card .sub{font-size:11px;color:var(--text-dim);margin-top:4px;}
+
+  .section-title{
+    font-size:13px;font-weight:700;color:var(--text-dim);
+    margin:20px 0 10px;text-transform:uppercase;letter-spacing:.4px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+
+  .entry-list{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border:1px solid var(--card-border);}
+  .entry-item{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:13px 16px;
+    border-bottom:1px solid var(--card-border);
+  }
+  .entry-item:last-child{border-bottom:none;}
+  .entry-item .e-nominal{font-weight:700;font-size:15px;}
+  .entry-item .e-time{font-size:11px;color:var(--text-dim);}
+  .entry-actions{display:flex;gap:8px;}
+  .icon-btn{
+    border:none;background:var(--bg);
+    width:32px;height:32px;border-radius:9px;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;font-size:14px;color:var(--text-dim);
+  }
+  .icon-btn.danger{color:var(--danger);}
+  .empty-note{padding:22px;text-align:center;color:var(--text-dim);font-size:13px;}
+
+  /* ---------- SETTINGS ---------- */
+  .settings-group{
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    margin-bottom:16px;
+    overflow:hidden;
+    border:1px solid var(--card-border);
+  }
+  .settings-row{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:15px 16px;
+    border-bottom:1px solid var(--card-border);
+    cursor:pointer;
+  }
+  .settings-row:last-child{border-bottom:none;}
+  .settings-row .label-block{display:flex;align-items:center;gap:12px;}
+  .settings-row .icon{font-size:17px;width:22px;text-align:center;}
+  .settings-row .title{font-size:14px;font-weight:600;}
+  .settings-row .desc{font-size:11px;color:var(--text-dim);}
+  .settings-row .chev{color:var(--text-dim);font-size:14px;}
+  .settings-row.danger .title{color:var(--danger);}
+
+  .toggle{
+    width:44px;height:26px;border-radius:20px;background:var(--bg);
+    border:1.5px solid var(--card-border);position:relative;cursor:pointer;flex-shrink:0;
+  }
+  .toggle.on{background:var(--g2);border-color:var(--g2);}
+  .toggle .knob{
+    position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;
+    background:#fff;transition:left .15s ease;box-shadow:0 1px 3px rgba(0,0,0,0.3);
+  }
+  .toggle.on .knob{left:20px;}
+
+  /* chart */
+  .chart-tabs{display:flex;gap:8px;margin-bottom:12px;}
+  .chart-tab{
+    flex:1;min-width:0;text-align:center;padding:8px;border-radius:10px;font-size:12px;font-weight:700;
+    background:var(--card);border:1px solid var(--card-border);color:var(--text-dim);cursor:pointer;
+  }
+  .chart-tab.active{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;border-color:transparent;}
+  .chart-wrap{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;border:1px solid var(--card-border);margin-bottom:14px;}
+  .bars{display:flex;align-items:flex-end;gap:4px;height:120px;margin-bottom:6px;}
+  .bar-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .bar{width:100%;max-width:18px;background:linear-gradient(180deg,var(--g1),var(--g3));border-radius:4px 4px 0 0;min-height:2px;}
+  .bar-col .day-lbl{font-size:8.5px;color:var(--text-dim);margin-top:4px;}
+  .chart-summary{display:flex;justify-content:space-between;border-top:1px solid var(--card-border);padding-top:10px;margin-top:8px;}
+  .chart-summary div{text-align:center;flex:1;min-width:0;}
+  .chart-summary .num{font-size:14px;font-weight:800;color:var(--g3);}
+  [data-theme="dark"] .chart-summary .num{color:var(--g1);}
+  .chart-summary .cap{font-size:10px;color:var(--text-dim);}
+
+  .history-row{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--card-border);}
+  .history-row:last-child{border-bottom:none;}
+  .history-row .hd-date{font-size:13px;font-weight:700;}
+  .history-row .hd-sub{font-size:11px;color:var(--text-dim);}
+  .history-row .hd-total{font-size:14px;font-weight:800;color:var(--g3);}
+  [data-theme="dark"] .history-row .hd-total{color:var(--g1);}
+
+  /* ---------- NAVBAR ---------- */
+  nav.navbar{
+    position:fixed;bottom:0;left:0;right:0;
+    max-width:460px;margin:0 auto;
+    background:var(--card);
+    border-top:1px solid var(--card-border);
+    display:flex;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    box-shadow:0 -6px 18px rgba(0,0,0,0.06);
+    z-index:50;
+  }
+  .nav-btn{
+    flex:1;background:none;border:none;display:flex;flex-direction:column;
+    align-items:center;gap:3px;padding:6px 0;color:var(--text-dim);cursor:pointer;
+  }
+  .nav-btn .ic{font-size:19px;}
+  .nav-btn .lb{font-size:10.5px;font-weight:600;}
+  .nav-btn.active{color:var(--g2);}
+  [data-theme="dark"] .nav-btn.active{color:var(--g1);}
+
+  /* ---------- MODAL ---------- */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,0.5);
+    display:none;align-items:flex-end;justify-content:center;z-index:600;
+  }
+  .modal-backdrop.show{display:flex;}
+  .modal{
+    background:var(--card);width:100%;max-width:460px;
+    border-radius:22px 22px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom));
+    animation:slideup .2s ease;
+  }
+  @keyframes slideup{from{transform:translateY(30px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .modal h3{margin:0 0 4px;font-size:16px;}
+  .modal p.note{font-size:12px;color:var(--text-dim);margin:0 0 16px;}
+  .modal input{
+    width:100%;padding:13px;border-radius:12px;border:1.5px solid var(--card-border);
+    background:var(--bg);color:var(--text);font-size:16px;margin-bottom:10px;
+  }
+  .modal input:focus{outline:none;border-color:var(--g1);}
+  .modal-actions{display:flex;gap:10px;margin-top:6px;}
+  .modal-actions button{flex:1;min-width:0;padding:13px;border-radius:12px;border:none;font-weight:700;font-size:14px;cursor:pointer;}
+  .btn-cancel{background:var(--bg);color:var(--text);}
+  .btn-confirm{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;}
+  .btn-confirm.danger{background:var(--danger);}
+
+  .toast{
+    position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+    background:#1c2a22;color:#fff;padding:10px 18px;border-radius:30px;
+    font-size:13px;z-index:700;opacity:0;pointer-events:none;transition:opacity .2s ease;
+    max-width:80%;text-align:center;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body data-theme="light">
+<div class="app">
+
+  <!-- ===== PIN SCREEN ===== -->
+  <div class="pin-screen" id="pinScreen">
+    <div class="pin-hero">
+      <div class="pin-logo">💵</div>
+      <h1>Cashlog</h1>
+      <p id="pinHeroSub">Masukkan PIN untuk melanjutkan</p>
+    </div>
+    <div class="pin-card">
+      <div class="label" id="pinLabel">Masukkan 6 digit PIN</div>
+      <div class="pin-error-msg" id="pinError"></div>
+      <div class="pin-dots" id="pinDots"></div>
+      <div class="keypad" id="keypad"></div>
+      <div class="pin-sub" id="pinSub"></div>
+    </div>
+  </div>
+
+  <!-- ===== HEADER ===== -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark">💵</div>
+      <div>
+        <div class="name">Cashlog</div>
+        <div class="tagline">Gentara Anugrah</div>
+      </div>
+    </div>
+    <div class="top-right">
+      <button class="btn-exit" onclick="lockApp()">🔒 Keluar</button>
+      <div class="clockbox">
+        <b id="clockTime">--:--:--</b>
+        <span id="clockDate">-</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main>
+
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="form-card">
+        <label>Masukkan nominal cash</label>
+        <div class="input-row">
+          <input type="number" id="nominal" placeholder="Contoh: 25000" inputmode="numeric">
+          <button class="btn-add" onclick="tambahCash()">Tambah</button>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <p class="lbl">Jumlah Order</p>
+          <div class="val" id="jumlahOrder">0</div>
+        </div>
+        <div class="stat-card">
+          <p class="lbl">Total Cash</p>
+          <div class="val" id="totalCash"><small>Rp</small> 0</div>
+        </div>
+        <div class="stat-card wide">
+          <p class="lbl">Rata-rata per Order</p>
+          <div class="val" id="avgOrder"><small>Rp</small> 0</div>
+          <div class="sub" id="todayDateLabel">-</div>
+        </div>
+      </div>
+
+      <div class="section-title">Entry Terakhir</div>
+      <div class="entry-list" id="entryList"></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+
+      <div class="section-title">Statistik</div>
+      <div class="chart-tabs">
+        <div class="chart-tab active" data-period="7" onclick="setChartPeriod(7)">7 Hari</div>
+        <div class="chart-tab" data-period="30" onclick="setChartPeriod(30)">30 Hari</div>
+      </div>
+      <div class="chart-wrap">
+        <div class="bars" id="chartBars"></div>
+        <div class="chart-summary">
+          <div><div class="num" id="chAvg">Rp 0</div><div class="cap">Rata-rata</div></div>
+          <div><div class="num" id="chMax">Rp 0</div><div class="cap">Tertinggi</div></div>
+          <div><div class="num" id="chTotal">Rp 0</div><div class="cap">Total</div></div>
+        </div>
+      </div>
+
+      <div class="section-title">Riwayat Harian</div>
+      <div class="settings-group" id="historyList"></div>
+
+      <div class="section-title">Data</div>
+      <div class="settings-group">
+        <div class="settings-row" onclick="exportJson()">
+          <div class="label-block"><span class="icon">⬇️</span><div><div class="title">Export JSON</div><div class="desc">Backup seluruh riwayat</div></div></div>
+          <span class="chev">›</span>
+        </div>
+        <div class="settings-row" onclick="document.getElementById('importFile').click()">
+          <div class="label-block"><span class="icon">⬆️</span><div><div class="title">Import JSON</div><div class="desc">Pulihkan dari backup</div></div></div>
+          <span class="chev">›</span>
+        </div>
+        <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJson(event)">
+      </div>
+
+      <div class="section-title">Keamanan &amp; Tampilan</div>
+      <div class="settings-group">
+        <div class="settings-row" onclick="openPinChangeModal()">
+          <div class="label-block"><span class="icon">🔑</span><div><div class="title">Ubah PIN</div><div class="desc">Ganti 6 digit PIN keamanan</div></div></div>
+          <span class="chev">›</span>
+        </div>
+        <div class="settings-row" onclick="toggleTheme()">
+          <div class="label-block"><span class="icon">🌓</span><div><div class="title">Mode Gelap</div><div class="desc">Sesuaikan tampilan</div></div></div>
+          <div class="toggle" id="themeToggle"><div class="knob"></div></div>
+        </div>
+      </div>
+
+      <div class="section-title">Danger Zone</div>
+      <div class="settings-group">
+        <div class="settings-row danger" onclick="openResetModal()">
+          <div class="label-block"><span class="icon">🗑️</span><div><div class="title">Reset Semua Data</div><div class="desc">Hapus seluruh riwayat &amp; entry</div></div></div>
+          <span class="chev">›</span>
+        </div>
+      </div>
+
+      <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:20px;">© Gentara Anugrah. All Rights Reserved. 2026</p>
+    </section>
+
+  </main>
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar">
+    <button class="nav-btn active" data-view="dashboard" onclick="switchView('dashboard')">
+      <span class="ic">🏠</span><span class="lb">Dashboard</span>
+    </button>
+    <button class="nav-btn" data-view="settings" onclick="switchView('settings')">
+      <span class="ic">⚙️</span><span class="lb">Pengaturan</span>
+    </button>
+  </nav>
+
+  <!-- ===== MODALS ===== -->
+  <div class="modal-backdrop" id="editModal">
+    <div class="modal">
+      <h3>Edit Entry</h3>
+      <p class="note">Ubah nominal untuk entry ini</p>
+      <input type="number" id="editNominalInput" inputmode="numeric">
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal('editModal')">Batal</button>
+        <button class="btn-confirm" onclick="confirmEditEntry()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="deleteModal">
+    <div class="modal">
+      <h3>Hapus Entry?</h3>
+      <p class="note">Entry ini akan dihapus dan total akan disesuaikan.</p>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal('deleteModal')">Batal</button>
+        <button class="btn-confirm danger" onclick="confirmDeleteEntry()">Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="resetModal">
+    <div class="modal">
+      <h3>Reset Semua Data</h3>
+      <p class="note">Tindakan ini permanen. Ketik <b>HAPUS</b> untuk konfirmasi.</p>
+      <input type="text" id="resetConfirmInput" placeholder="Ketik HAPUS">
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal('resetModal')">Batal</button>
+        <button class="btn-confirm danger" onclick="confirmReset()">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="pinChangeModal">
+    <div class="modal">
+      <h3>Ubah PIN</h3>
+      <p class="note">Masukkan PIN lama, lalu PIN baru (6 digit).</p>
+      <input type="password" id="oldPinInput" maxlength="6" inputmode="numeric" placeholder="PIN lama">
+      <input type="password" id="newPinInput" maxlength="6" inputmode="numeric" placeholder="PIN baru">
+      <input type="password" id="newPinInput2" maxlength="6" inputmode="numeric" placeholder="Ulangi PIN baru">
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal('pinChangeModal')">Batal</button>
+        <button class="btn-confirm" onclick="confirmPinChange()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+</div>
+
+<script>
+/* ==================== STORAGE / DATA ==================== */
+const STORAGE_KEY = 'cashlog_data_v1';
+const PIN_KEY = 'cashlog_pin_v1';
+const THEME_KEY = 'cashlog_theme_v1';
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function loadData(){
+  let raw = localStorage.getItem(STORAGE_KEY);
+  let data;
+  if(raw){
+    try{ data = JSON.parse(raw); }catch(e){ data = null; }
+  }
+  if(!data){
+    data = { today: { date: todayStr(), entries: [] }, history: {} };
+  }
+  return rollover(data);
+}
+
+function saveData(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function rollover(data){
+  const t = todayStr();
+  if(data.today.date !== t){
+    // archive previous day if it had entries
+    if(data.today.entries.length > 0){
+      const jumlahOrder = data.today.entries.length;
+      const totalCash = data.today.entries.reduce((s,e)=>s+e.nominal,0);
+      data.history[data.today.date] = { jumlahOrder, totalCash, entries: data.today.entries };
+    }
+    data.today = { date: t, entries: [] };
+  }
+  return data;
+}
+
+let state = loadData();
+
+/* ==================== PIN LOGIC ==================== */
+let pinBuffer = '';
+let pinMode = 'unlock'; // 'setup1' | 'setup2' | 'unlock' | 'changeOld' etc handled separately for settings modal
+let setupFirstPin = '';
+
+function getPin(){ return localStorage.getItem(PIN_KEY); }
+function setPin(p){ localStorage.setItem(PIN_KEY, p); }
+
+function renderKeypad(){
+  const keys = ['1','2','3','4','5','6','7','8','9','','0','back'];
+  const kp = document.getElementById('keypad');
+  kp.innerHTML = '';
+  keys.forEach(k=>{
+    const btn = document.createElement('button');
+    if(k===''){ btn.className='key ghost'; btn.disabled=true; }
+    else if(k==='back'){ btn.className='key ghost'; btn.innerText='⌫'; btn.onclick=()=>pinBackspace(); }
+    else{ btn.className='key'; btn.innerText=k; btn.onclick=()=>pinPress(k); }
+    kp.appendChild(btn);
+  });
+}
+renderKeypad();
+
+function renderDots(){
+  const wrap = document.getElementById('pinDots');
+  wrap.innerHTML='';
+  for(let i=0;i<6;i++){
+    const d = document.createElement('div');
+    d.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
+    wrap.appendChild(d);
+  }
+}
+
+function pinPress(k){
+  if(pinBuffer.length>=6) return;
+  pinBuffer += k;
+  renderDots();
+  document.getElementById('pinError').innerText='';
+  if(pinBuffer.length===6){
+    setTimeout(handlePinComplete, 150);
+  }
+}
+function pinBackspace(){
+  pinBuffer = pinBuffer.slice(0,-1);
+  renderDots();
+}
+
+function shakeError(msg){
+  document.getElementById('pinError').innerText = msg;
+  const wrap = document.getElementById('pinDots');
+  wrap.querySelectorAll('.pin-dot').forEach(d=>d.classList.add('error'));
+  setTimeout(()=>{
+    pinBuffer='';
+    renderDots();
+  }, 400);
+}
+
+function handlePinComplete(){
+  const existingPin = getPin();
+  if(!existingPin){
+    // first-time setup
+    if(pinMode==='setup1'){
+      setupFirstPin = pinBuffer;
+      pinBuffer='';
+      pinMode='setup2';
+      document.getElementById('pinLabel').innerText = 'Ulangi 6 digit PIN';
+      document.getElementById('pinHeroSub').innerText = 'Konfirmasi PIN baru';
+      renderDots();
+    }else if(pinMode==='setup2'){
+      if(pinBuffer===setupFirstPin){
+        setPin(pinBuffer);
+        unlockApp();
+      }else{
+        shakeError('PIN tidak cocok, ulangi dari awal');
+        pinMode='setup1';
+        setupFirstPin='';
+        setTimeout(()=>{
+          document.getElementById('pinLabel').innerText = 'Buat 6 digit PIN';
+          document.getElementById('pinHeroSub').innerText = 'Amankan Cashlog dengan PIN';
+        },400);
+      }
+    }
+  }else{
+    if(pinBuffer === existingPin){
+      unlockApp();
+    }else{
+      shakeError('PIN salah, coba lagi');
+    }
+  }
+}
+
+function initPinScreen(){
+  const existingPin = getPin();
+  pinBuffer='';
+  if(!existingPin){
+    pinMode='setup1';
+    document.getElementById('pinLabel').innerText = 'Buat 6 digit PIN';
+    document.getElementById('pinHeroSub').innerText = 'Amankan Cashlog dengan PIN';
+  }else{
+    pinMode='unlock';
+    document.getElementById('pinLabel').innerText = 'Masukkan 6 digit PIN';
+    document.getElementById('pinHeroSub').innerText = 'Masukkan PIN untuk melanjutkan';
+  }
+  renderDots();
+  document.getElementById('pinError').innerText='';
+  document.getElementById('pinScreen').style.display='flex';
+}
+
+function unlockApp(){
+  document.getElementById('pinScreen').style.display='none';
+  state = loadData(); // re-check rollover on unlock
+  renderAll();
+}
+
+function lockApp(){
+  initPinScreen();
+}
+
+/* ==================== THEME ==================== */
+function applyTheme(t){
+  document.body.setAttribute('data-theme', t);
+  document.getElementById('themeToggle').classList.toggle('on', t==='dark');
+  localStorage.setItem(THEME_KEY, t);
+}
+function toggleTheme(){
+  const cur = document.body.getAttribute('data-theme');
+  applyTheme(cur==='dark' ? 'light' : 'dark');
+}
+applyTheme(localStorage.getItem(THEME_KEY) || 'light');
+
+/* ==================== NAV ==================== */
+function switchView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  if(v==='settings'){ renderHistory(); renderChart(); }
+}
+
+/* ==================== CLOCK ==================== */
+const hariList = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const bulanList = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+function tickClock(){
+  const d = new Date();
+  document.getElementById('clockTime').innerText =
+    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+  document.getElementById('clockDate').innerText =
+    hariList[d.getDay()]+', '+d.getDate()+' '+bulanList[d.getMonth()]+' '+d.getFullYear();
+
+  // detect midnight rollover while app open
+  if(state.today.date !== todayStr()){
+    state = rollover(state);
+    saveData();
+    renderAll();
+  }
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+/* ==================== FORMAT ==================== */
+function rupiah(n){ return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+
+/* ==================== DASHBOARD RENDER ==================== */
+function renderDashboard(){
+  const entries = state.today.entries;
+  const jumlahOrder = entries.length;
+  const totalCash = entries.reduce((s,e)=>s+e.nominal,0);
+  const avg = jumlahOrder ? totalCash/jumlahOrder : 0;
+
+  document.getElementById('jumlahOrder').innerText = jumlahOrder;
+  document.getElementById('totalCash').innerHTML = '<small>Rp</small> ' + Math.round(totalCash).toLocaleString('id-ID');
+  document.getElementById('avgOrder').innerHTML = '<small>Rp</small> ' + Math.round(avg).toLocaleString('id-ID');
+
+  const d = new Date();
+  document.getElementById('todayDateLabel').innerText = hariList[d.getDay()]+', '+d.getDate()+' '+bulanList[d.getMonth()]+' '+d.getFullYear();
+
+  const list = document.getElementById('entryList');
+  list.innerHTML='';
+  const recent = entries.slice(-5).reverse();
+  if(recent.length===0){
+    list.innerHTML = '<div class="empty-note">Belum ada entry hari ini</div>';
+    return;
+  }
+  recent.forEach(e=>{
+    const row = document.createElement('div');
+    row.className='entry-item';
+    row.innerHTML = `
+      <div>
+        <div class="e-nominal">${rupiah(e.nominal)}</div>
+        <div class="e-time">${e.time}</div>
+      </div>
+      <div class="entry-actions">
+        <button class="icon-btn" onclick="openEditEntry('${e.id}')">✏️</button>
+        <button class="icon-btn danger" onclick="openDeleteEntry('${e.id}')">🗑️</button>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+function tambahCash(){
+  const input = document.getElementById('nominal');
+  const nominal = Number(input.value);
+  if(!nominal || nominal<=0){
+    showToast('Masukkan nominal yang valid');
+    return;
+  }
+  const d = new Date();
+  const time = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  state.today.entries.push({ id: 'e'+Date.now()+Math.floor(Math.random()*1000), nominal, time });
+  saveData();
+  input.value='';
+  input.focus();
+  renderDashboard();
+}
+
+/* ---- edit / delete entry ---- */
+let targetEntryId = null;
+function openEditEntry(id){
+  targetEntryId = id;
+  const entry = state.today.entries.find(e=>e.id===id);
+  if(!entry) return;
+  document.getElementById('editNominalInput').value = entry.nominal;
+  openModal('editModal');
+}
+function confirmEditEntry(){
+  const val = Number(document.getElementById('editNominalInput').value);
+  if(!val || val<=0){ showToast('Nominal tidak valid'); return; }
+  const entry = state.today.entries.find(e=>e.id===targetEntryId);
+  if(entry){ entry.nominal = val; saveData(); renderDashboard(); showToast('Entry diperbarui'); }
+  closeModal('editModal');
+}
+function openDeleteEntry(id){
+  targetEntryId = id;
+  openModal('deleteModal');
+}
+function confirmDeleteEntry(){
+  state.today.entries = state.today.entries.filter(e=>e.id!==targetEntryId);
+  saveData();
+  renderDashboard();
+  closeModal('deleteModal');
+  showToast('Entry dihapus');
+}
+
+/* ==================== MODAL HELPERS ==================== */
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+/* ==================== TOAST ==================== */
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.innerText = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ==================== HISTORY LIST ==================== */
+function renderHistory(){
+  const wrap = document.getElementById('historyList');
+  const dates = Object.keys(state.history).sort((a,b)=> b.localeCompare(a));
+  wrap.innerHTML='';
+  if(dates.length===0){
+    wrap.innerHTML = '<div class="empty-note">Belum ada riwayat harian</div>';
+    return;
+  }
+  dates.forEach(dt=>{
+    const h = state.history[dt];
+    const dObj = new Date(dt+'T00:00:00');
+    const label = dObj.getDate()+' '+bulanList[dObj.getMonth()]+' '+dObj.getFullYear();
+    const row = document.createElement('div');
+    row.className='history-row';
+    row.innerHTML = `
+      <div>
+        <div class="hd-date">${label}</div>
+        <div class="hd-sub">${h.jumlahOrder} order</div>
+      </div>
+      <div class="hd-total">${rupiah(h.totalCash)}</div>`;
+    wrap.appendChild(row);
+  });
+}
+
+/* ==================== CHART ==================== */
+let chartPeriod = 7;
+function setChartPeriod(p){
+  chartPeriod = p;
+  document.querySelectorAll('.chart-tab').forEach(t=>t.classList.toggle('active', Number(t.dataset.period)===p));
+  renderChart();
+}
+function renderChart(){
+  const days = [];
+  for(let i=chartPeriod-1;i>=0;i--){
+    const d = new Date();
+    d.setDate(d.getDate()-i);
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    let total;
+    if(key===state.today.date){
+      total = state.today.entries.reduce((s,e)=>s+e.nominal,0);
+    }else{
+      total = state.history[key] ? state.history[key].totalCash : 0;
+    }
+    days.push({ key, total, dLabel: String(d.getDate()) });
+  }
+  const max = Math.max(...days.map(d=>d.total), 1);
+  const bars = document.getElementById('chartBars');
+  bars.innerHTML='';
+  days.forEach(d=>{
+    const col = document.createElement('div');
+    col.className='bar-col';
+    const h = Math.max(2, Math.round((d.total/max)*100));
+    col.innerHTML = `<div class="bar" style="height:${h}%"></div><div class="day-lbl">${d.dLabel}</div>`;
+    bars.appendChild(col);
+  });
+  const totals = days.map(d=>d.total);
+  const sum = totals.reduce((a,b)=>a+b,0);
+  const avg = sum / days.length;
+  const maxVal = Math.max(...totals);
+  document.getElementById('chAvg').innerText = rupiah(avg);
+  document.getElementById('chMax').innerText = rupiah(maxVal);
+  document.getElementById('chTotal').innerText = rupiah(sum);
+}
+
+/* ==================== IMPORT / EXPORT ==================== */
+function exportJson(){
+  const payload = { exportedAt: new Date().toISOString(), data: state };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cashlog-backup-'+todayStr()+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Backup berhasil diunduh');
+}
+function importJson(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const parsed = JSON.parse(e.target.result);
+      const data = parsed.data ? parsed.data : parsed;
+      if(!data.today || !data.history){ throw new Error('format'); }
+      state = rollover(data);
+      saveData();
+      renderAll();
+      showToast('Data berhasil diimpor');
+    }catch(err){
+      showToast('File JSON tidak valid');
+    }
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+/* ==================== RESET ==================== */
+function openResetModal(){
+  document.getElementById('resetConfirmInput').value='';
+  openModal('resetModal');
+}
+function confirmReset(){
+  const val = document.getElementById('resetConfirmInput').value.trim();
+  if(val !== 'HAPUS'){
+    showToast('Ketik HAPUS untuk konfirmasi');
+    return;
+  }
+  state = { today: { date: todayStr(), entries: [] }, history: {} };
+  saveData();
+  renderAll();
+  closeModal('resetModal');
+  showToast('Semua data direset');
+}
+
+/* ==================== PIN CHANGE ==================== */
+function openPinChangeModal(){
+  document.getElementById('oldPinInput').value='';
+  document.getElementById('newPinInput').value='';
+  document.getElementById('newPinInput2').value='';
+  openModal('pinChangeModal');
+}
+function confirmPinChange(){
+  const oldP = document.getElementById('oldPinInput').value;
+  const newP = document.getElementById('newPinInput').value;
+  const newP2 = document.getElementById('newPinInput2').value;
+  const current = getPin();
+  if(oldP !== current){ showToast('PIN lama salah'); return; }
+  if(!/^\d{6}$/.test(newP)){ showToast('PIN baru harus 6 digit angka'); return; }
+  if(newP !== newP2){ showToast('Konfirmasi PIN baru tidak cocok'); return; }
+  setPin(newP);
+  closeModal('pinChangeModal');
+  showToast('PIN berhasil diubah');
+}
+
+/* ==================== INIT ==================== */
+function renderAll(){
+  renderDashboard();
+  renderHistory();
+  renderChart();
+}
+
+document.getElementById('nominal').addEventListener('keydown', function(e){
+  if(e.key==='Enter'){ tambahCash(); }
+});
+
+initPinScreen();
+renderAll();
+</script>
+</body>
+</html>
