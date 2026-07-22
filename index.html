@@ -460,6 +460,7 @@ button{font-family:inherit;} input{font-family:inherit;}
 const STORAGE_KEY = 'cashlog_data_v1';
 const PIN_KEY = 'cashlog_pin_v1';
 const THEME_KEY = 'cashlog_theme_v1';
+const SESSION_KEY = 'cashlog_session_v1';
 
 function todayStr(){
   const d = new Date();
@@ -615,11 +616,13 @@ function initPinScreen(){
 function unlockApp(){
   document.getElementById('screen-pin').classList.remove('active');
   document.getElementById('screen-app').classList.add('active');
+  sessionStorage.setItem(SESSION_KEY, '1');
   state = loadData();
   renderAll();
 }
 
 function lockApp(){
+  sessionStorage.removeItem(SESSION_KEY);
   initPinScreen();
 }
 
@@ -991,8 +994,12 @@ document.getElementById('kembalianInput').addEventListener('keydown', function(e
   if(e.key==='Enter'){ kasihKembalian(); }
 });
 
-initPinScreen();
-renderAll();
+if(getPin() && sessionStorage.getItem(SESSION_KEY)==='1'){
+  unlockApp();
+}else{
+  initPinScreen();
+  renderAll();
+}
 </script>
 </body>
 </html>
